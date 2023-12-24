@@ -32,11 +32,10 @@ export const responseSchema = new mongoose.Schema(
             type: Number,
             default: 0
         },
-        comment: [
-            {
-                type: commentSchema
-            }
-        ]
+        comment: {
+            type: Array,
+            default: [],
+        },
     },
     { timestamps: true }
 )
@@ -48,6 +47,10 @@ export const postSchema = new mongoose.Schema(
             required: true,
         },
         title: {
+            type: String,
+            require: true
+        },
+        subTitle: {
             type: String,
             require: true
         },
@@ -79,15 +82,10 @@ export const postSchema = new mongoose.Schema(
             type: Boolean,
             default: true,
         },
-        view: {
+        responses: {
             type: Array,
             default: [],
         },
-        responses: [
-            {
-                type: responseSchema
-            }
-        ]
     },
     { timestamps: true }
 );
@@ -95,3 +93,5 @@ export const postSchema = new mongoose.Schema(
 
 
 export const PostModel = mongoose.model("Post", postSchema);
+export const ResponseModel = mongoose.model('Response', responseSchema);
+export const CommentModel = mongoose.model('Comment', commentSchema);

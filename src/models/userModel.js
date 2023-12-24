@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const notifiModel = new mongoose.Schema(
+const notifiSchema = new mongoose.Schema(
   {
     postId: {
       type: String,
@@ -8,6 +8,21 @@ const notifiModel = new mongoose.Schema(
     },
     responseId: {
       type: String,
+    },
+    commentId: {
+      type: String,
+    },
+    details: {
+      sender: {
+        type: String,
+        required: true,
+      },
+      postName: {
+        type: String,
+      },
+      content: {
+        type: String,
+      },
     },
     checked: {
       type: Boolean,
@@ -61,11 +76,13 @@ const userSchema = new mongoose.Schema(
       default: [],
     },
     notification: {
-      type: notifiModel
-    }
+      type: Array,
+      default: [],
+    },
 
   },
   { timestamps: true }
 );
 
 export const UserModel = mongoose.model("User", userSchema);
+export const NotifyModel = mongoose.model("Notify", notifiSchema);

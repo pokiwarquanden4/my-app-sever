@@ -6,6 +6,14 @@ const routesConfig = {
       jwt: false,
       role: undefined
     },
+    getUser: {
+      jwt: false,
+      role: undefined,
+      details: {
+        jwt: true,
+        role: "User"
+      },
+    },
     create: {
       account: {
         jwt: false,
@@ -16,7 +24,23 @@ const routesConfig = {
   posts: {
     jwt: false,
     role: undefined,
+    post: {
+      jwt: false,
+      role: undefined
+    },
+    responses: {
+      jwt: false,
+      role: undefined
+    },
+    comments: {
+      jwt: false,
+      role: undefined
+    },
     posts: {
+      jwt: false,
+      role: undefined
+    },
+    search: {
       jwt: false,
       role: undefined
     },
@@ -36,6 +60,18 @@ const routesConfig = {
         role: "User"
       },
       comment: {
+        jwt: true,
+        role: "User"
+      },
+    },
+    update: {
+      jwt: true,
+      role: "User",
+      post: {
+        jwt: true,
+        role: "User"
+      },
+      response: {
         jwt: true,
         role: "User"
       },

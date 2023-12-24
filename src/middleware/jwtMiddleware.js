@@ -8,7 +8,7 @@ const jwtMiddleware = async (req, res, next) => {
       req.body.role = config.role;
       const user = await authenJWT(req, res);
 
-      if (user) {
+      if (user && !user.error) {
         if (!user.refreshToken) {
           req.body = {
             ...req.body,
@@ -22,10 +22,15 @@ const jwtMiddleware = async (req, res, next) => {
           };
         }
       }
+
+      if (user.error) {
+        return res.status(user.error.status).json(user.error.message);
+      }
     }
-    next();
+    return next();
   } catch (err) {
-    res.status(500).json(err);
+    console.log(err)
+    return res.status(500).json(err);
   }
 };
 

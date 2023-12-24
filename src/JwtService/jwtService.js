@@ -25,21 +25,30 @@ export const createRefreshToken = (data) => {
 export const authenJWT = (req, res) => {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
-  let currentUser;
+  let currentUser = {};
   if (token == null) {
-    return res.status(401).json("Token is null");
+    currentUser.error = {
+      status: 401,
+      message: "Token is null"
+    }
   }
   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
     if (err) {
       jwt.verify(token, process.env.REFRESH_TOKEN_SECRET, (err, user) => {
         if (err) {
-          res.status(401).json("Token is invalid");
+          currentUser.error = {
+            status: 401,
+            message: "Token is invalid"
+          }
         } else {
           if (req.body.role === undefined || user.roleName === req.body.role) {
             currentUser = user;
             currentUser.refreshToken = true;
           } else {
-            res.status(401).json("You don't have permission");
+            currentUser.error = {
+              status: 401,
+              message: "You don't have permission"
+            }
           }
         }
       });
@@ -47,7 +56,10 @@ export const authenJWT = (req, res) => {
       if (req.body.role === undefined || user.roleName === req.body.role) {
         currentUser = user;
       } else {
-        res.status(401).json("You don't have permission");
+        currentUser.error = {
+          status: 401,
+          message: "You don't have permission"
+        }
       }
     }
   });
@@ -59,6 +71,7 @@ export const responseWithJWT = async (req, res, obj) => {
     return {
       accessToken: createJWT(res.locals.data),
       refreshToken: createRefreshToken(res.locals.data),
+      ...obj
     }
   }
 
@@ -80,6 +93,6 @@ export const handleResponseWithJWTMiddleware = async (req, res) => {
     return res.status(res.locals.status).json(responseVal);
   } catch (err) {
     console.log(err)
-    return res.status(500).json(err);
+    // return res.status(500).json(err);
   }
 };

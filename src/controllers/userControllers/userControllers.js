@@ -12,7 +12,7 @@ export const createUser = async (req, res, next) => {
       res.locals.data = {
         message: "Missing required fields"
       }
-      next()
+      return next()
     }
 
     // Hash the password before storing it
@@ -31,7 +31,7 @@ export const createUser = async (req, res, next) => {
       res.locals.data = {
         message: "Create Success"
       }
-      next()
+      return next()
     }).catch((error) => {
       switch (error.code) {
         case 11000:
@@ -40,13 +40,13 @@ export const createUser = async (req, res, next) => {
             message: "Duplicate key violation. User already exists",
             duplicateField: Object.keys(error.keyPattern)
           }
-          next()
+          return next()
         default:
           res.locals.status = 500
           res.locals.data = {
             message: "Sever Error"
           }
-          next()
+          return next()
       }
     });
   } catch (err) {
@@ -54,7 +54,7 @@ export const createUser = async (req, res, next) => {
     res.locals.data = {
       message: "Sever Error"
     }
-    next()
+    return next()
   }
 };
 
@@ -68,7 +68,7 @@ export const loginUser = async (req, res, next) => {
       res.locals.data = {
         message: "Missing required fields"
       }
-      next()
+      return next()
     }
 
     // Find the user by account (or any other unique identifier you use for login)
@@ -80,7 +80,7 @@ export const loginUser = async (req, res, next) => {
       res.locals.data = {
         message: "User not found"
       }
-      next()
+      return next()
     }
 
     // Compare the provided password with the hashed password in the database
@@ -92,35 +92,101 @@ export const loginUser = async (req, res, next) => {
       res.locals.data = {
         message: "Validate Success",
         account: user.account,
-        roleName: user.roleName
+        avatarURL: user.avatarURL,
+        name: user.name,
+        email: user.email,
+        roleName: user.roleName,
+        heartNumber: user.heartNumber,
+        userPost: user.userPost,
+        followPost: user.followPost,
+        followAnswer: user.followAnswer,
+        notification: user.notification,
       }
-      next()
+      return next()
     } else {
       // Passwords do not match
       res.locals.status = 401
       res.locals.data = {
         message: "Invalid credentials"
       }
-      next()
+      return next()
     }
   } catch (err) {
     res.locals.status = 500
     res.locals.data = {
       message: "Sever Error"
     }
-    next()
+    return next()
   }
 };
 
 export const getUser = async (req, res, next) => {
   try {
-    console.log(req.body)
-  } catch (err) {
-    res.locals.status = 500
-    res.locals.data = {
-      message: "Sever Error"
+    const { account } = req.body;
+
+    // Assuming UserModel has a method like findOne to find a user by account
+    const user = await UserModel.findOne({ account });
+
+    if (!user) {
+      res.locals.status = 404;
+      res.locals.data = {
+        message: "User not found",
+      };
+    } else {
+      res.locals.status = 200;
+      res.locals.data = {
+        message: "Success",
+        account: user.account,
+        avatarURL: user.avatarURL,
+        name: user.name,
+        roleName: user.roleName,
+        heartNumber: user.heartNumber,
+        userPost: user.userPost,
+      };
     }
-    next()
+  } catch (err) {
+    res.locals.status = 500;
+    res.locals.data = {
+      message: "Server Error",
+    };
   }
+  return next();
+};
+
+export const getUserDetails = async (req, res, next) => {
+  try {
+    const account = req.body.jwtAccount.account
+
+    // Assuming UserModel has a method like findOne to find a user by account
+    const user = await UserModel.findOne({ account });
+
+    if (!user) {
+      res.locals.status = 404;
+      res.locals.data = {
+        message: "User not found",
+      };
+    } else {
+      res.locals.status = 200;
+      res.locals.data = {
+        message: "Success",
+        account: user.account,
+        avatarURL: user.avatarURL,
+        name: user.name,
+        email: user.email,
+        roleName: user.roleName,
+        heartNumber: user.heartNumber,
+        userPost: user.userPost,
+        followPost: user.followPost,
+        followAnswer: user.followAnswer,
+        notification: user.notification,
+      };
+    }
+  } catch (err) {
+    res.locals.status = 500;
+    res.locals.data = {
+      message: "Server Error",
+    };
+  }
+  return next();
 };
 
