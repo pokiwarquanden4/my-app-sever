@@ -11,7 +11,7 @@ const routesConfig = {
       role: undefined,
       details: {
         jwt: true,
-        role: "User"
+        role: undefined
       },
     },
     create: {
@@ -77,6 +77,26 @@ const routesConfig = {
       },
     }
   },
+  admin: {
+    jwt: true,
+    role: "Admin",
+    advert: {
+      jwt: true,
+      role: "Admin",
+      create: {
+        jwt: true,
+        role: "Admin",
+      },
+      update: {
+        jwt: true,
+        role: "Admin",
+      },
+      simpleAdverts: {
+        jwt: false,
+        role: undefined,
+      }
+    }
+  }
 };
 
 export const checkConfigJWT = (urlString) => {

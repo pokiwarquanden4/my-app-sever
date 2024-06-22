@@ -18,6 +18,9 @@ const advertSchema = new mongoose.Schema(
             type: String,
             require: true,
         },
+        url: {
+            type: String,
+        }
     },
     { timestamps: true }
 );

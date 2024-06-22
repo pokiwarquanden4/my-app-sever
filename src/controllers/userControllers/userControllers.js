@@ -1,16 +1,17 @@
 import { UserModel } from "../../models/userModel.js";
 import bcrypt from 'bcrypt';
+import { createFireBaseImg } from "../FireBaseControllers/FireBaseControllers.js";
 
 //Tạo người dùng
 export const createUser = async (req, res, next) => {
   try {
-    const { account, avatarURL, name, email, password } = req.body;
+    const { account, name, email, password } = req.body;
 
     // Check if required fields are missing
     if (!account || !name || !email || !password) {
       res.locals.status = 422
       res.locals.data = {
-        message: "Missing required fields"
+        message: "Missing required field"
       }
       return next()
     }
@@ -19,6 +20,7 @@ export const createUser = async (req, res, next) => {
     const hashedPassword = await bcrypt.hash(password, 10); // You can adjust the salt rounds as needed
 
     // Create the user
+    const avatarURL = await createFireBaseImg(account, req.file)
     UserModel.create({
       account,
       avatarURL,
@@ -50,6 +52,7 @@ export const createUser = async (req, res, next) => {
       }
     });
   } catch (err) {
+    console.log(err)
     res.locals.status = 500
     res.locals.data = {
       message: "Sever Error"
