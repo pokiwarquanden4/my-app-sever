@@ -186,6 +186,7 @@ export const getUserDetails = async (req, res, next) => {
         followPost: user.followPost,
         followAnswer: user.followAnswer,
         notification: user.notification,
+        followResponse: user.followResponse,
       };
     }
   } catch (err) {
@@ -199,15 +200,105 @@ export const getUserDetails = async (req, res, next) => {
 
 export const getProfile = async (req, res, next) => {
   try {
-    const { account } = req.query
+    const { account } = req.query;
 
+    if (!account) {
+      res.locals.status = 400;
+      res.locals.data = {
+        message: "Account query parameter is required",
+      };
+      return next();
+    }
 
+    const user = await UserModel.findOne({ account })
+      .select('account avatarURL name email techTags heartNumber userPost userResponse')
+      .populate({ path: 'userPost' }) // Adjust the fields to select from Post
+      .populate({ path: 'userResponse' }); // Adjust the fields to select from Response
+
+    if (!user) {
+      res.locals.status = 404;
+      res.locals.data = {
+        message: "User not found",
+      };
+    } else {
+      res.locals.status = 200;
+      res.locals.data = {
+        userResponse: user.userResponse,
+        _id: user._id,
+        account: user.account,
+        avatarURL: user.avatarURL,
+        name: user.name,
+        email: user.email,
+        techTags: user.techTags,
+        heartNumber: user.heartNumber,
+        userPost: user.userPost,
+      };
+    }
+
+    return next();
   } catch (err) {
+    console.error(err);
     res.locals.status = 500;
     res.locals.data = {
       message: "Server Error",
     };
+    return next();
   }
-  return next();
+};
+
+export const updateProfile = async (req, res, next) => {
+  try {
+    const { name, techTags, password, jwtAccount } = req.body;
+    console.log({ name, techTags, password, jwtAccount })
+    const account = jwtAccount.account
+
+    // Validate if required fields are provided
+    if (!name && !techTags && !password) {
+      res.locals.status = 400;
+      res.locals.data = {
+        message: "Account and at least one field (name, techTags, password) are required for update",
+      };
+      return next();
+    }
+
+    // Construct update object with provided fields
+    const updateFields = {};
+    if (name) updateFields.name = name;
+    if (techTags) updateFields.techTags = techTags;
+    if (password) {
+      // Hash the password before storing it
+      const hashedPassword = await bcrypt.hash(password, 10); // You can adjust the salt rounds as needed
+      updateFields.password = hashedPassword;
+    }
+
+    // Find and update the user by account
+    const updatedUser = await UserModel.findOneAndUpdate(
+      { account },
+      updateFields,
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedUser) {
+      res.locals.status = 404;
+      res.locals.data = {
+        message: "User not found",
+      };
+    } else {
+      res.locals.status = 200;
+      res.locals.data = {
+        message: "Profile updated successfully",
+        user: updatedUser,
+      };
+    }
+
+    return next();
+  } catch (err) {
+    console.error(err);
+    res.locals.status = 500;
+    res.locals.data = {
+      message: "Server Error",
+    };
+    return next();
+  }
 };
 

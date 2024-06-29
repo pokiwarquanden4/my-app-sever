@@ -30,10 +30,10 @@ export const responseSchema = new mongoose.Schema(
             type: Boolean,
             default: false
         },
-        rate: {
-            type: Number,
-            default: 0
-        },
+        rate: [{
+            type: Schema.Types.ObjectId,
+            ref: 'User'
+        }],
         comment: [{
             type: Schema.Types.ObjectId,
             ref: 'Comment'
@@ -69,18 +69,18 @@ export const postSchema = new mongoose.Schema(
             type: Array,
             default: [],
         },
-        rate: {
-            type: Number,
-            default: 0,
-        },
+        rate: [{
+            type: Schema.Types.ObjectId,
+            ref: 'User'
+        }],
         slove: {
             type: Boolean,
             default: false,
         },
-        reportNum: {
-            type: Array,
-            default: [],
-        },
+        reportNum: [{
+            type: Schema.Types.ObjectId,
+            ref: 'User'
+        }],
         enable: {
             type: Boolean,
             default: true,

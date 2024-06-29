@@ -23,6 +23,10 @@ const routesConfig = {
     profile: {
       jwt: false,
       role: undefined,
+      update: {
+        jwt: true,
+        role: "User",
+      }
     }
   },
   posts: {
@@ -64,6 +68,14 @@ const routesConfig = {
         role: "User"
       },
       comment: {
+        jwt: true,
+        role: "User"
+      },
+    },
+    delete: {
+      jwt: true,
+      role: "User",
+      post: {
         jwt: true,
         role: "User"
       },

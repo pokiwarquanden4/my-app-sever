@@ -29,12 +29,21 @@ export const createPost = async (req, res, next) => {
                 message: "Missing required fields",
             };
             return next();
-            return;
+        }
+
+        //Get the user
+        const user = await UserModel.findOne({ account: jwtAccount.account })
+        if (!user) {
+            res.locals.status = 401;
+            res.locals.data = {
+                message: "Unauthorize",
+            };
+            return next();
         }
 
         // Create the post
         const createdPost = await PostModel.create({
-            userId: jwtAccount.account,
+            userId: user._id,
             title,
             subTitle,
             content,
@@ -78,11 +87,21 @@ export const responsePost = async (req, res, next) => {
             return next()
         }
 
+        //Get the user
+        const user = await UserModel.findOne({ account: jwtAccount.account })
+        if (!user) {
+            res.locals.status = 401;
+            res.locals.data = {
+                message: "Unauthorize",
+            };
+            return next();
+        }
+
         // Create a new response using the responseSchema
         const newResponse = await ResponseModel.create({
-            userId: jwtAccount.account,
+            userId: user._id,
             content: content,
-        });
+        })
         const post = await PostModel.findById(postId);
         if (!post) {
             res.locals.status = 404;
@@ -94,29 +113,33 @@ export const responsePost = async (req, res, next) => {
         post.responses.push(newResponse.id);
         await post.save();
 
+        // Populate the userId field in the new response
+        const response = await ResponseModel.findById(newResponse._id).populate({ path: 'userId', select: 'account' });
+
         // Create a new notify
-        if (jwtAccount.account !== post.userId) {
-            const newNotify = await NotifyModel.create({
-                postId: post.id,
-                responseId: newResponse.id,
-                details: {
-                    sender: jwtAccount.account,
-                    postName: post.title
-                }
-            })
-            await UserModel.updateOne(
-                { account: post.userId },
-                { $push: { notification: newNotify.id } }
-            );
-        }
+        // if (jwtAccount.account !== post.userId) {
+        //     const newNotify = await NotifyModel.create({
+        //         postId: post.id,
+        //         responseId: newResponse.id,
+        //         details: {
+        //             sender: jwtAccount.account,
+        //             postName: post.title
+        //         }
+        //     })
+        //     await UserModel.updateOne(
+        //         { account: post.userId },
+        //         { $push: { notification: newNotify.id } }
+        //     );
+        // }
 
         res.locals.status = 200;
         res.locals.data = {
             message: "Response added successfully",
-            response: newResponse
+            response: response
         };
         return next();
     } catch (err) {
+        console.log(err)
         res.locals.status = 500
         res.locals.data = {
             message: "Sever Error"
@@ -138,9 +161,19 @@ export const commentResponse = async (req, res, next) => {
             return next();
         }
 
+        //Get the user
+        const user = await UserModel.findOne({ account: jwtAccount.account })
+        if (!user) {
+            res.locals.status = 401;
+            res.locals.data = {
+                message: "Unauthorize",
+            };
+            return next();
+        }
+
         //Create Comment
         const newComment = await CommentModel.create({
-            userId: jwtAccount.account,
+            userId: user._id,
             content: content,
         });
         const response = await ResponseModel.findById(responseId);
@@ -154,30 +187,34 @@ export const commentResponse = async (req, res, next) => {
         response.comment.push(newComment.id);
         await response.save();
 
+        // Populate the userId field in the new response
+        const comment = await CommentModel.findById(newComment._id).populate({ path: 'userId', select: 'account' });
+
         // Create a new notify
-        if (jwtAccount.account !== response.userId) {
-            const newNotify = await NotifyModel.create({
-                postId: postId,
-                commentId: newComment.id,
-                details: {
-                    sender: jwtAccount.account,
-                    content: content
-                }
-            })
-            await UserModel.updateOne(
-                { account: post.userId },
-                { $push: { notification: newNotify.id } }
-            );
-        }
+        // if (jwtAccount.account !== response.userId) {
+        //     const newNotify = await NotifyModel.create({
+        //         postId: postId,
+        //         commentId: newComment.id,
+        //         details: {
+        //             sender: jwtAccount.account,
+        //             content: content
+        //         }
+        //     })
+        //     await UserModel.updateOne(
+        //         { account: post.userId },
+        //         { $push: { notification: newNotify.id } }
+        //     );
+        // }
 
         res.locals.status = 200;
         res.locals.data = {
             message: "Comment added successfully",
-            comment: newComment
+            comment: comment
         };
         return next();
 
     } catch (err) {
+        console.log(err)
         res.locals.status = 500;
         res.locals.data = {
             message: "Server Error"
@@ -239,8 +276,9 @@ export const getPosts = async (req, res, next) => {
                     tags: 1,
                     userId: 1,
                     updatedAt: 1,
+                    responses: 1,
                     verified: { $sum: '$responses.verified' },
-                });
+                }).populate({ path: 'userId', select: 'account' }); // Populate the userId field in the post;
 
             // Execute a separate query to get the total count
             totalCount = await PostModel.countDocuments(query);
@@ -257,8 +295,9 @@ export const getPosts = async (req, res, next) => {
                     tags: 1,
                     userId: 1,
                     updatedAt: 1,
+                    responses: 1,
                     verified: { $sum: '$responses.verified' },
-                });
+                }).populate({ path: 'userId', select: 'account' }); // Populate the userId field in the post;
 
             // Execute a separate query to get the total count
             totalCount = await PostModel.countDocuments(query);
@@ -298,7 +337,7 @@ export const getResponses = async (req, res, next) => {
         }
 
         // Retrieve all responses for the post
-        const responses = await ResponseModel.find({ _id: { $in: post.responses } });
+        const responses = await ResponseModel.find({ _id: { $in: post.responses } }).populate({ path: 'userId', select: 'account' });
 
         res.locals.status = 200;
         res.locals.data = {
@@ -334,7 +373,7 @@ export const getComments = async (req, res, next) => {
         }
 
         // Retrieve all comments for the response
-        const comments = await CommentModel.find({ _id: { $in: response.comment } });
+        const comments = await CommentModel.find({ _id: { $in: response.comment } }).populate({ path: 'userId', select: 'account' });
 
         res.locals.status = 200;
         res.locals.data = {
@@ -410,7 +449,16 @@ export const getPostById = async (req, res, next) => {
         const postId = req.query.id; // Assuming the post ID is passed as a parameter in the request
 
         // Find the post by ID
-        const post = await PostModel.findById(postId);
+        const post = await PostModel.findById(postId)
+            .populate({
+                path: 'responses',
+                populate: [
+                    { path: 'comment', populate: { path: 'userId', select: 'account' } },
+                    { path: 'userId', select: 'account' }
+                ]
+            })
+            .populate({ path: 'userId', select: 'account' }); // Populate the userId field in the post
+
 
         if (!post) {
             res.locals.status = 404;
@@ -564,6 +612,61 @@ export const updateResponse = async (req, res, next) => {
         return next();
     }
 };
+
+export const deletePostById = async (req, res, next) => {
+    try {
+        const { postId, jwtAccount } = req.body; // Assuming the post ID is passed as a parameter in the request URL
+
+        // Find the post by ID
+        const post = await PostModel.findById(postId).populate({ path: 'userId', select: 'account' }); // Populate the userId field in the post;
+
+        if (post.userId.account !== jwtAccount.account) {
+            res.locals.status = 401;
+            res.locals.data = {
+                message: 'Unauthorize',
+            };
+            return next();
+        }
+
+        if (!post) {
+            res.locals.status = 404;
+            res.locals.data = {
+                message: 'Post not found',
+            };
+            return next();
+        }
+
+        // Delete the post
+        await PostModel.findByIdAndDelete(postId);
+
+        // Find all responses related to the post
+        const responses = await ResponseModel.find({ _id: { $in: post.responses } });
+
+        // Collect all comment IDs from the responses
+        const commentIds = responses.reduce((acc, response) => {
+            return acc.concat(response.comment);
+        }, []);
+
+        // Delete all responses related to the post
+        await ResponseModel.deleteMany({ _id: { $in: post.responses } });
+
+        // Delete all comments related to the responses
+        await CommentModel.deleteMany({ _id: { $in: commentIds } });
+
+        res.locals.status = 200;
+        res.locals.data = {
+            message: 'Post, responses, and comments deleted successfully',
+        };
+        return next();
+    } catch (err) {
+        console.error(err);
+        res.locals.status = 500;
+        res.locals.data = {
+            message: 'Server Error',
+        };
+        return next();
+    }
+}
 
 // Helper function to calculate the percentage of matching letters
 const calculateMatchPercentage = (str1, str2) => {

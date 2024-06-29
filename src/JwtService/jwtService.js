@@ -36,6 +36,8 @@ export const authenJWT = (req, res) => {
     if (err) {
       jwt.verify(token, process.env.REFRESH_TOKEN_SECRET, (err, user) => {
         if (err) {
+          console.log(token)
+          console.log(err)
           currentUser.error = {
             status: 401,
             message: "Token is invalid"
