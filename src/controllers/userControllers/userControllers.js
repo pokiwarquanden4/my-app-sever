@@ -5,10 +5,10 @@ import { createFireBaseImg } from "../FireBaseControllers/FireBaseControllers.js
 //Tạo người dùng
 export const createUser = async (req, res, next) => {
   try {
-    const { account, name, email, password } = req.body;
+    const { account, name, email, password, techTags } = req.body;
 
     // Check if required fields are missing
-    if (!account || !name || !email || !password) {
+    if (!account || !name || !email || !password || !techTags) {
       res.locals.status = 422
       res.locals.data = {
         message: "Missing required field"
@@ -26,6 +26,7 @@ export const createUser = async (req, res, next) => {
       avatarURL,
       name,
       email,
+      techTags,
       password: hashedPassword,
       roleName: "User",
     }).then(() => {
@@ -142,7 +143,9 @@ export const getUser = async (req, res, next) => {
         account: user.account,
         avatarURL: user.avatarURL,
         name: user.name,
+        email: user.email,
         roleName: user.roleName,
+        techTags: user.techTags,
         heartNumber: user.heartNumber,
         userPost: user.userPost,
       };
@@ -176,6 +179,7 @@ export const getUserDetails = async (req, res, next) => {
         avatarURL: user.avatarURL,
         name: user.name,
         email: user.email,
+        techTags: user.techTags,
         roleName: user.roleName,
         heartNumber: user.heartNumber,
         userPost: user.userPost,
@@ -184,6 +188,20 @@ export const getUserDetails = async (req, res, next) => {
         notification: user.notification,
       };
     }
+  } catch (err) {
+    res.locals.status = 500;
+    res.locals.data = {
+      message: "Server Error",
+    };
+  }
+  return next();
+};
+
+export const getProfile = async (req, res, next) => {
+  try {
+    const { account } = req.query
+
+
   } catch (err) {
     res.locals.status = 500;
     res.locals.data = {

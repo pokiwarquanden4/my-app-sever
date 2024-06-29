@@ -11,7 +11,7 @@ adminRoutes.get("/advert", jwtMiddlewareController, getAdverts, handleResponseWi
 
 adminRoutes.post("/advert/create", jwtMiddlewareController, upload.single('img'), createAdvert, handleResponseWithJWTMiddleware);
 
-adminRoutes.put("/advert/update", jwtMiddlewareController, updateAdvert, handleResponseWithJWTMiddleware);
+adminRoutes.put("/advert/update", jwtMiddlewareController, upload.single('img'), updateAdvert, handleResponseWithJWTMiddleware);
 
 adminRoutes.get("/advert/simpleAdverts", jwtMiddlewareController, getAllAdvert, handleResponseWithJWTMiddleware);
 

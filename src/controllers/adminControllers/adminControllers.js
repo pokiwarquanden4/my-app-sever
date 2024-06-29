@@ -73,14 +73,14 @@ export const createAdvert = async (req, res, next) => {
             return next();
         }
 
-        const imgURl = await createFireBaseImg(req.file)
-        console.log(imgURl)
+        const imgURL = await createFireBaseImg('advert', req.file)
+        console.log(imgURL)
         // Create a new advertisement
         const newAdvert = new AdvertModel({
             endTimeA,
             startTimeA,
             name,
-            imgURl,
+            imgURL,
             url
         });
 
@@ -105,10 +105,10 @@ export const createAdvert = async (req, res, next) => {
 
 export const updateAdvert = async (req, res, next) => {
     try {
-        const { advertId, endTimeA, startTimeA, name, imgURl, url } = req.body;
+        const { advertId, endTimeA, startTimeA, name, url } = req.body;
 
         // Validate required fields
-        if (!endTimeA || !startTimeA || !name || !imgURl) {
+        if (!endTimeA || !startTimeA || !name || !url) {
             res.locals.status = 400;
             res.locals.data = {
                 message: "Missing required fields"
@@ -117,11 +117,21 @@ export const updateAdvert = async (req, res, next) => {
         }
 
         // Find and update the advertisement
-        const updatedAdvert = await AdvertModel.findByIdAndUpdate(
-            advertId,
-            { endTimeA, startTimeA, name, imgURl, url },
-            { new: true, runValidators: true }
-        );
+        const imgURL = await createFireBaseImg('advert', req.file)
+        let updatedAdvert
+        if (imgURL) {
+            updatedAdvert = await AdvertModel.findByIdAndUpdate(
+                advertId,
+                { endTimeA, startTimeA, name, imgURL, url },
+                { new: true, runValidators: true }
+            );
+        } else {
+            updatedAdvert = await AdvertModel.findByIdAndUpdate(
+                advertId,
+                { endTimeA, startTimeA, name, url },
+                { new: true, runValidators: true }
+            );
+        }
 
         // Check if advertisement was found and updated
         if (!updatedAdvert) {
@@ -152,11 +162,11 @@ export const getAllAdvert = async (req, res, next) => {
     try {
         const currentTime = new Date();
 
-        // Find adverts with current time between startTimeA and endTimeA, selecting only name, imgURl, and url fields
+        // Find adverts with current time between startTimeA and endTimeA, selecting only name, imgURL, and url fields
         const adverts = await AdvertModel.find({
             startTimeA: { $lte: currentTime },
             endTimeA: { $gte: currentTime }
-        }).select('name imgURl url');
+        }).select('name imgURL url');
 
         res.locals.status = 200;
         res.locals.data = {

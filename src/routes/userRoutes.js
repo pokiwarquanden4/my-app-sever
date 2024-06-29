@@ -1,6 +1,7 @@
 import express from "express";
 import {
   createUser,
+  getProfile,
   getUser,
   getUserDetails,
   loginUser
@@ -17,6 +18,8 @@ userRoutes.post("/create/account", jwtMiddlewareController, upload.single('img')
 userRoutes.post("/login", jwtMiddlewareController, loginUser, handleResponseWithJWTMiddleware);
 
 userRoutes.get("/getUser", jwtMiddlewareController, getUser, handleResponseWithJWTMiddleware);
+
+userRoutes.get("/profile", jwtMiddlewareController, getProfile, handleResponseWithJWTMiddleware);
 
 userRoutes.get("/getUser/details", jwtMiddlewareController, getUserDetails, handleResponseWithJWTMiddleware);
 

@@ -1,10 +1,11 @@
-import mongoose from "mongoose";
+import mongoose, { Schema } from "mongoose";
 
 export const commentSchema = new mongoose.Schema(
     {
         userId: {
-            type: String,
-            required: true,
+            type: Schema.Types.ObjectId,
+            ref: 'User',
+            require: true
         },
         content: {
             type: String,
@@ -17,8 +18,9 @@ export const commentSchema = new mongoose.Schema(
 export const responseSchema = new mongoose.Schema(
     {
         userId: {
-            type: String,
-            required: true,
+            type: Schema.Types.ObjectId,
+            ref: 'User',
+            require: true
         },
         content: {
             type: String,
@@ -32,10 +34,10 @@ export const responseSchema = new mongoose.Schema(
             type: Number,
             default: 0
         },
-        comment: {
-            type: Array,
-            default: [],
-        },
+        comment: [{
+            type: Schema.Types.ObjectId,
+            ref: 'Comment'
+        }],
     },
     { timestamps: true }
 )
@@ -43,8 +45,9 @@ export const responseSchema = new mongoose.Schema(
 export const postSchema = new mongoose.Schema(
     {
         userId: {
-            type: String,
-            required: true,
+            type: Schema.Types.ObjectId,
+            ref: 'User',
+            require: true
         },
         title: {
             type: String,
@@ -82,10 +85,10 @@ export const postSchema = new mongoose.Schema(
             type: Boolean,
             default: true,
         },
-        responses: {
-            type: Array,
-            default: [],
-        },
+        responses: [{
+            type: Schema.Types.ObjectId,
+            ref: 'Response'
+        }],
     },
     { timestamps: true }
 );

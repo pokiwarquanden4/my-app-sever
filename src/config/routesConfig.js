@@ -19,6 +19,10 @@ const routesConfig = {
         jwt: false,
         role: undefined,
       },
+    },
+    profile: {
+      jwt: false,
+      role: undefined,
     }
   },
   posts: {

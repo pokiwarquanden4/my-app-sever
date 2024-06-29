@@ -14,7 +14,7 @@ const advertSchema = new mongoose.Schema(
             type: String,
             required: true,
         },
-        imgURl: {
+        imgURL: {
             type: String,
             require: true,
         },

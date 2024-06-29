@@ -1,28 +1,15 @@
-import mongoose from "mongoose";
+import mongoose, { Schema } from "mongoose";
 
 const notifiSchema = new mongoose.Schema(
   {
     postId: {
-      type: String,
-      required: true,
+      type: Schema.Types.ObjectId,
+      ref: 'Post',
+      require: true
     },
     responseId: {
-      type: String,
-    },
-    commentId: {
-      type: String,
-    },
-    details: {
-      sender: {
-        type: String,
-        required: true,
-      },
-      postName: {
-        type: String,
-      },
-      content: {
-        type: String,
-      },
+      type: Schema.Types.ObjectId,
+      ref: 'Response'
     },
     checked: {
       type: Boolean,
@@ -59,26 +46,34 @@ const userSchema = new mongoose.Schema(
       type: String,
       require: true,
     },
+    techTags: {
+      type: Array,
+      default: []
+    },
     heartNumber: {
       type: Number,
       default: 0,
     },
-    userPost: {
-      type: Array,
-      default: [],
-    },
-    followPost: {
-      type: Array,
-      default: [],
-    },
-    followAnswer: {
-      type: Array,
-      default: [],
-    },
-    notification: {
-      type: Array,
-      default: [],
-    },
+    userPost: [{
+      type: Schema.Types.ObjectId,
+      ref: 'Post'
+    }],
+    followPost: [{
+      type: Schema.Types.ObjectId,
+      ref: 'Post'
+    }],
+    followResponse: [{
+      type: Schema.Types.ObjectId,
+      ref: 'Response'
+    }],
+    userResponse: [{
+      type: Schema.Types.ObjectId,
+      ref: 'Response'
+    }],
+    notification: [{
+      type: Schema.Types.ObjectId,
+      ref: 'Notify'
+    }],
 
   },
   { timestamps: true }
