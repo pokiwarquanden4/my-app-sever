@@ -175,6 +175,7 @@ export const getUserDetails = async (req, res, next) => {
       res.locals.status = 200;
       res.locals.data = {
         message: "Success",
+        _id: user._id,
         account: user.account,
         avatarURL: user.avatarURL,
         name: user.name,
@@ -249,7 +250,6 @@ export const getProfile = async (req, res, next) => {
 export const updateProfile = async (req, res, next) => {
   try {
     const { name, techTags, password, jwtAccount } = req.body;
-    console.log({ name, techTags, password, jwtAccount })
     const account = jwtAccount.account
 
     // Validate if required fields are provided
@@ -300,5 +300,94 @@ export const updateProfile = async (req, res, next) => {
     };
     return next();
   }
+};
+
+export const getUsersSimpleData = async (req, res, next) => {
+  try {
+    const { number, type, searchVal } = req.query;
+
+    // Handle pagination based on the 'number' parameter
+    const skip = (parseInt(number) - 1) * 10;
+
+    // Determine the query and sort condition based on the 'type' parameter
+    let sort = {};
+    switch (type) {
+      case 'Popular':
+        sort = { heartNumber: -1 }; // Sort by heartNumber in descending order
+        break;
+      case 'A-Z':
+        sort = { title: 1 }; // Sor enable: truet alphabetically by title
+        break;
+      case 'New':
+        sort = { createdAt: -1 }; // Sort by createdAt in descending order
+        break;
+      default:
+        res.locals.status = 400;
+        res.locals.data = {
+          message: "Invalid type parameter"
+        };
+        return next();
+    }
+
+    // Execute the query to get the paginated users
+    let users = [];
+    let totalCount = 0;
+
+    users = await UserModel.find({ roleName: "User" })
+      .sort(sort)
+      .skip(skip)
+      .limit(10)
+      .select({
+        _id: 1,
+        name: 1,
+        account: 1,
+        avatarURL: 1,
+        techTags: 1,
+        userPost: 1,
+        heartNumber: 1,
+      })
+
+    // Execute a separate query to get the total count
+    totalCount = users.length
+
+    // Custom filtering based on searchVal
+    if (searchVal) {
+      users = users.filter(user => {
+        const nameMatch = calculateMatchPercentage(user.name, searchVal) > 50;
+        const accountMatch = calculateMatchPercentage(user.account, searchVal) > 50;
+        return nameMatch || accountMatch;
+      });
+
+      totalCount = users.length
+    }
+
+    res.locals.status = 200;
+    res.locals.data = {
+      users: users,
+      totalCount: totalCount
+    };
+    return next();
+  } catch (err) {
+    console.error(err);
+    res.locals.status = 500;
+    res.locals.data = {
+      message: "Server Error",
+    };
+    return next();
+  }
+};
+
+// Helper function to calculate the percentage of matching letters
+export const calculateMatchPercentage = (str1, str2) => {
+  const minLength = Math.min(str1.length, str2.length);
+  let matchingCount = 0;
+
+  for (let i = 0; i < minLength; i++) {
+    if (str1[i].toLowerCase() === str2[i].toLowerCase()) {
+      matchingCount++;
+    }
+  }
+
+  return (matchingCount / minLength) * 100;
 };
 

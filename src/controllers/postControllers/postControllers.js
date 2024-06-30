@@ -58,11 +58,11 @@ export const createPost = async (req, res, next) => {
 
         res.locals.status = 200;
         res.locals.data = {
-            message: "Create Success",
+            message: "Create Successd",
+            postId: createdPost._id
         };
         return next();
     } catch (error) {
-        console.error(error);
         switch (error.code) {
             default:
                 res.locals.status = 500;
@@ -225,7 +225,7 @@ export const commentResponse = async (req, res, next) => {
 
 export const getPosts = async (req, res, next) => {
     try {
-        const { number, type } = req.query;
+        const { number, type, searchVal, tags } = req.query;
 
         let query = {};
 
@@ -255,6 +255,11 @@ export const getPosts = async (req, res, next) => {
                     message: "Invalid type parameter"
                 };
                 return next();
+        }
+
+        // Add tags condition to the query
+        if (tags.length) {
+            query.tags = { $in: tags.split(',') };
         }
 
         // Execute the query to get the paginated posts
@@ -301,6 +306,17 @@ export const getPosts = async (req, res, next) => {
 
             // Execute a separate query to get the total count
             totalCount = await PostModel.countDocuments(query);
+        }
+
+        // Custom filtering based on searchVal
+        if (searchVal) {
+            posts = posts.filter(post => {
+                const titleMatch = calculateMatchPercentage(post.title, searchVal) > 50;
+                const subTitleMatch = calculateMatchPercentage(post.subTitle, searchVal) > 50;
+                return titleMatch || subTitleMatch;
+            });
+
+            totalCount = posts.length;
         }
 
         res.locals.status = 200;
@@ -499,7 +515,7 @@ export const updatePost = async (req, res, next) => {
         }
 
         // Check if userId matches the userId of the post
-        const existingPost = await PostModel.findById(postId);
+        const existingPost = await PostModel.findById(postId).populate({ path: 'userId', select: 'account' }); // Populate the userId field in the post;
 
         if (!existingPost) {
             res.locals.status = 404;
@@ -509,7 +525,7 @@ export const updatePost = async (req, res, next) => {
             return next();
         }
 
-        if (jwtAccount.account !== existingPost.userId) {
+        if (jwtAccount.account !== existingPost.userId.account) {
             res.locals.status = 403;
             res.locals.data = {
                 message: 'User is not authorized to update this post',
@@ -668,8 +684,131 @@ export const deletePostById = async (req, res, next) => {
     }
 }
 
+export const ratePost = async (req, res, next) => {
+    try {
+        const { postId, jwtAccount } = req.body;
+
+        //Get the user
+        const user = await UserModel.findOne({ account: jwtAccount.account })
+        if (!user) {
+            res.locals.status = 401;
+            res.locals.data = {
+                message: "Unauthorize",
+            };
+            return next();
+        }
+
+        // Find the post by ID
+        const post = await PostModel.findById(postId);
+        if (!post) {
+            res.locals.status = 404;
+            res.locals.data = {
+                message: 'Post not found',
+            };
+            return next();
+        }
+
+        // Check if user already rated the post
+        if (post.rate.includes(user._id)) {
+            res.locals.status = 400;
+            res.locals.data = {
+                message: 'User has already rated this post',
+            };
+            return next();
+        }
+
+        // Add userId to the rate array
+        post.rate.push(user._id);
+        await post.save();
+
+        if (user) {
+            user.heartNumber += 1;
+            await user.save();
+        } else {
+            res.locals.status = 404;
+            res.locals.data = {
+                message: 'User not found',
+            };
+            return next();
+        }
+
+        res.locals.status = 200;
+        res.locals.data = {
+            message: 'Post rated successfully',
+            account: user._id
+        };
+        return next();
+    } catch (err) {
+        console.error(err);
+        res.locals.status = 500;
+        res.locals.data = {
+            message: 'Server Error',
+        };
+        return next();
+    }
+}
+
+export const unRatePost = async (req, res, next) => {
+    try {
+        const { postId, jwtAccount } = req.body;
+
+        // Get the user
+        const user = await UserModel.findOne({ account: jwtAccount.account });
+        if (!user) {
+            res.locals.status = 401;
+            res.locals.data = {
+                message: "Unauthorized",
+            };
+            return next();
+        }
+
+        // Find the post by ID
+        const post = await PostModel.findById(postId);
+        if (!post) {
+            res.locals.status = 404;
+            res.locals.data = {
+                message: 'Post not found',
+            };
+            return next();
+        }
+
+        // Check if user has rated the post
+        const userIndex = post.rate.indexOf(user._id);
+        if (userIndex === -1) {
+            res.locals.status = 400;
+            res.locals.data = {
+                message: 'User has not rated this post',
+            };
+            return next();
+        }
+
+        // Remove userId from the rate array
+        post.rate.splice(userIndex, 1);
+        await post.save();
+
+        // Decrease the heartNumber by 1 for the user
+        user.heartNumber = Math.max(user.heartNumber - 1, 0); // Ensure heartNumber doesn't go below 0
+        await user.save();
+
+        res.locals.status = 200;
+        res.locals.data = {
+            message: 'Post unrated successfully',
+            account: user._id
+        };
+        return next();
+    } catch (err) {
+        console.error(err);
+        res.locals.status = 500;
+        res.locals.data = {
+            message: 'Server Error',
+        };
+        return next();
+    }
+}
+
+
 // Helper function to calculate the percentage of matching letters
-const calculateMatchPercentage = (str1, str2) => {
+export const calculateMatchPercentage = (str1, str2) => {
     const minLength = Math.min(str1.length, str2.length);
     let matchingCount = 0;
 

@@ -27,7 +27,11 @@ const routesConfig = {
         jwt: true,
         role: "User",
       }
-    }
+    },
+    getUsersSimpleData: {
+      jwt: false,
+      role: undefined,
+    },
   },
   posts: {
     jwt: false,
@@ -91,6 +95,18 @@ const routesConfig = {
         jwt: true,
         role: "User"
       },
+    },
+    rate: {
+      jwt: true,
+      role: "User",
+      post: {
+        jwt: true,
+        role: "User",
+      },
+      unPost: {
+        jwt: true,
+        role: "User",
+      }
     }
   },
   admin: {
@@ -118,7 +134,6 @@ const routesConfig = {
 export const checkConfigJWT = (urlString) => {
   const urlParts = urlString.split("/");
   let config = routesConfig;
-
   for (let i = 1; i < urlParts.length; i++) {
     const part =
       urlParts[i].indexOf("?") === -1

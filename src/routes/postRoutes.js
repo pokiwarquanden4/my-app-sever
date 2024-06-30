@@ -1,7 +1,7 @@
 import express from "express";
 import { jwtMiddlewareController } from '../middleware/jwtMiddleware.js'
 import { handleResponseWithJWTMiddleware } from "../JwtService/jwtService.js";
-import { commentResponse, createPost, deletePostById, getComments, getPostById, getPosts, getPostsBySearch, getResponses, getTags, responsePost, updatePost, updateResponse } from "../controllers/postControllers/postControllers.js";
+import { commentResponse, createPost, deletePostById, getComments, getPostById, getPosts, getPostsBySearch, getResponses, getTags, ratePost, responsePost, unRatePost, updatePost, updateResponse } from "../controllers/postControllers/postControllers.js";
 
 const postRoutes = express.Router();
 
@@ -23,10 +23,14 @@ postRoutes.get("/responses", jwtMiddlewareController, getResponses, handleRespon
 
 postRoutes.get("/comments", jwtMiddlewareController, getComments, handleResponseWithJWTMiddleware);
 
-postRoutes.put("/update/post", jwtMiddlewareController, updatePost, handleResponseWithJWTMiddleware);
-
 postRoutes.put("/update/response", jwtMiddlewareController, updateResponse, handleResponseWithJWTMiddleware);
 
+postRoutes.put("/update/post", jwtMiddlewareController, updatePost, handleResponseWithJWTMiddleware);
+
 postRoutes.post("/delete/post", jwtMiddlewareController, deletePostById, handleResponseWithJWTMiddleware);
+
+postRoutes.post("/rate/post", jwtMiddlewareController, ratePost, handleResponseWithJWTMiddleware);
+
+postRoutes.post("/rate/unPost", jwtMiddlewareController, unRatePost, handleResponseWithJWTMiddleware);
 
 export default postRoutes;

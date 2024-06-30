@@ -4,6 +4,7 @@ import {
   getProfile,
   getUser,
   getUserDetails,
+  getUsersSimpleData,
   loginUser,
   updateProfile
 } from "../controllers/userControllers/userControllers.js";
@@ -24,7 +25,8 @@ userRoutes.get("/getUser/details", jwtMiddlewareController, getUserDetails, hand
 
 userRoutes.get("/profile", jwtMiddlewareController, getProfile, handleResponseWithJWTMiddleware);
 
-userRoutes.put("/profile/update", jwtMiddlewareController, upload.single('img'), updateProfile, handleResponseWithJWTMiddleware);
+userRoutes.put("/profile/update", upload.single('img'), jwtMiddlewareController, updateProfile, handleResponseWithJWTMiddleware);
 
+userRoutes.get("/getUsersSimpleData", jwtMiddlewareController, getUsersSimpleData, handleResponseWithJWTMiddleware);
 
 export default userRoutes;
