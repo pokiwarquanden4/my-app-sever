@@ -282,8 +282,10 @@ export const getPosts = async (req, res, next) => {
                     userId: 1,
                     updatedAt: 1,
                     responses: 1,
-                    verified: { $sum: '$responses.verified' },
-                }).populate({ path: 'userId', select: 'account' }); // Populate the userId field in the post;
+                    verified: { $sum: '$responses.vertified' },
+                })
+                .populate({ path: 'userId', select: 'account' })
+                .populate({ path: 'responses', select: 'vertified' });
 
             // Execute a separate query to get the total count
             totalCount = await PostModel.countDocuments(query);
@@ -301,8 +303,10 @@ export const getPosts = async (req, res, next) => {
                     userId: 1,
                     updatedAt: 1,
                     responses: 1,
-                    verified: { $sum: '$responses.verified' },
-                }).populate({ path: 'userId', select: 'account' }); // Populate the userId field in the post;
+                    verified: { $sum: '$responses.vertified' },
+                })
+                .populate({ path: 'userId', select: 'account' })
+                .populate({ path: 'responses', select: 'vertified' });
 
             // Execute a separate query to get the total count
             totalCount = await PostModel.countDocuments(query);
@@ -581,7 +585,7 @@ export const updateResponse = async (req, res, next) => {
         }
 
         // Check if userId matches the userId of the post
-        const existingResponse = await ResponseModel.findById(responseId);
+        const existingResponse = await ResponseModel.findById(responseId).populate({ path: 'userId', select: 'account' });
 
         if (!existingResponse) {
             res.locals.status = 404;
@@ -591,7 +595,7 @@ export const updateResponse = async (req, res, next) => {
             return next();
         }
 
-        if (jwtAccount.account !== existingResponse.userId) {
+        if (jwtAccount.account !== existingResponse.userId.account) {
             res.locals.status = 403;
             res.locals.data = {
                 message: 'User is not authorized to update this response',
@@ -940,6 +944,53 @@ export const unRateResponse = async (req, res, next) => {
     }
 }
 
+export const vertifyResponse = async (req, res, next) => {
+    try {
+        const { postId, responseId, trueOrFalse } = req.body;
+
+        // Find the response by ID
+        const response = await ResponseModel.findById(responseId);
+        if (!response) {
+            res.locals.status = 404;
+            res.locals.data = {
+                message: 'Response not found',
+            };
+            return next();
+        }
+
+        // Update the trueOrFalse field
+        response.vertified = trueOrFalse;
+        await response.save();
+
+        // Find the response by ID
+        const post = await PostModel.findById(postId).populate({ path: 'responses', select: 'vertified' });;
+        if (!post) {
+            res.locals.status = 404;
+            res.locals.data = {
+                message: 'Post not found',
+            };
+            return next();
+        }
+
+        // Check if any response is verified
+        const isSolved = post.responses.some(res => res.vertified);
+        post.slove = isSolved;
+        await post.save();
+
+        res.locals.status = 200;
+        res.locals.data = {
+            message: `Response ${trueOrFalse ? 'solved' : 'unsolved'} successfully`,
+        };
+        return next();
+    } catch (err) {
+        console.error(err);
+        res.locals.status = 500;
+        res.locals.data = {
+            message: 'Server Error',
+        };
+        return next();
+    }
+}
 
 
 // Helper function to calculate the percentage of matching letters

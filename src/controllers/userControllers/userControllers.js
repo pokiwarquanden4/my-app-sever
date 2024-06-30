@@ -95,15 +95,18 @@ export const loginUser = async (req, res, next) => {
       res.locals.status = 200
       res.locals.data = {
         message: "Validate Success",
+        _id: user._id,
         account: user.account,
         avatarURL: user.avatarURL,
         name: user.name,
         email: user.email,
         roleName: user.roleName,
+        techTags: user.techTags,
         heartNumber: user.heartNumber,
         userPost: user.userPost,
+        userResponse: user.userResponse,
         followPost: user.followPost,
-        followAnswer: user.followAnswer,
+        followResponse: user.followResponse,
         notification: user.notification,
       }
       return next()
