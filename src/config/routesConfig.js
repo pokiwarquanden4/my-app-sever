@@ -40,6 +40,10 @@ const routesConfig = {
       jwt: false,
       role: undefined
     },
+    vertify: {
+      jwt: true,
+      role: "User"
+    },
     responses: {
       jwt: false,
       role: undefined
@@ -104,6 +108,14 @@ const routesConfig = {
         role: "User",
       },
       unPost: {
+        jwt: true,
+        role: "User",
+      },
+      response: {
+        jwt: true,
+        role: "User",
+      },
+      unResponse: {
         jwt: true,
         role: "User",
       }

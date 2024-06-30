@@ -1,7 +1,7 @@
 import express from "express";
 import { jwtMiddlewareController } from '../middleware/jwtMiddleware.js'
 import { handleResponseWithJWTMiddleware } from "../JwtService/jwtService.js";
-import { commentResponse, createPost, deletePostById, getComments, getPostById, getPosts, getPostsBySearch, getResponses, getTags, ratePost, responsePost, unRatePost, updatePost, updateResponse } from "../controllers/postControllers/postControllers.js";
+import { commentResponse, createPost, deletePostById, getComments, getPostById, getPosts, getPostsBySearch, getResponses, getTags, ratePost, rateResponse, responsePost, unRatePost, unRateResponse, updatePost, updateResponse } from "../controllers/postControllers/postControllers.js";
 
 const postRoutes = express.Router();
 
@@ -32,5 +32,11 @@ postRoutes.post("/delete/post", jwtMiddlewareController, deletePostById, handleR
 postRoutes.post("/rate/post", jwtMiddlewareController, ratePost, handleResponseWithJWTMiddleware);
 
 postRoutes.post("/rate/unPost", jwtMiddlewareController, unRatePost, handleResponseWithJWTMiddleware);
+
+postRoutes.post("/rate/response", jwtMiddlewareController, rateResponse, handleResponseWithJWTMiddleware);
+
+postRoutes.post("/rate/unResponse", jwtMiddlewareController, unRateResponse, handleResponseWithJWTMiddleware);
+
+postRoutes.post("/vertify", jwtMiddlewareController, unRateResponse, handleResponseWithJWTMiddleware);
 
 export default postRoutes;

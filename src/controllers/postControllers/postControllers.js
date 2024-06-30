@@ -721,9 +721,10 @@ export const ratePost = async (req, res, next) => {
         post.rate.push(user._id);
         await post.save();
 
-        if (user) {
-            user.heartNumber += 1;
-            await user.save();
+        const owner = await UserModel.findById(post.userId)
+        if (owner) {
+            owner.heartNumber += 1;
+            await owner.save();
         } else {
             res.locals.status = 404;
             res.locals.data = {
@@ -787,8 +788,9 @@ export const unRatePost = async (req, res, next) => {
         await post.save();
 
         // Decrease the heartNumber by 1 for the user
-        user.heartNumber = Math.max(user.heartNumber - 1, 0); // Ensure heartNumber doesn't go below 0
-        await user.save();
+        const owner = await UserModel.findById(post.userId)
+        owner.heartNumber = Math.max(owner.heartNumber - 1, 0); // Ensure heartNumber doesn't go below 0
+        await owner.save();
 
         res.locals.status = 200;
         res.locals.data = {
@@ -805,6 +807,139 @@ export const unRatePost = async (req, res, next) => {
         return next();
     }
 }
+
+export const rateResponse = async (req, res, next) => {
+    try {
+        const { responseId, jwtAccount } = req.body;
+
+        //Get the user
+        const user = await UserModel.findOne({ account: jwtAccount.account })
+        if (!user) {
+            res.locals.status = 401;
+            res.locals.data = {
+                message: "Unauthorize",
+            };
+            return next();
+        }
+
+        // Find the post by ID
+        const response = await ResponseModel.findById(responseId);
+        if (!response) {
+            res.locals.status = 404;
+            res.locals.data = {
+                message: 'Post not found',
+            };
+            return next();
+        }
+
+        // Check if user already rated the response
+        if (response.rate.includes(user._id)) {
+            res.locals.status = 400;
+            res.locals.data = {
+                message: 'User has already rated this response',
+            };
+            return next();
+        }
+
+        // Add userId to the rate array
+        response.rate.push(user._id);
+        await response.save();
+
+        const owner = await UserModel.findById(response.userId)
+        if (owner) {
+            owner.heartNumber += 1;
+            await owner.save();
+        } else {
+            res.locals.status = 404;
+            res.locals.data = {
+                message: 'User not found',
+            };
+            return next();
+        }
+
+        res.locals.status = 200;
+        res.locals.data = {
+            message: 'Post rated successfully',
+            account: user._id
+        };
+        return next();
+    } catch (err) {
+        console.error(err);
+        res.locals.status = 500;
+        res.locals.data = {
+            message: 'Server Error',
+        };
+        return next();
+    }
+}
+
+export const unRateResponse = async (req, res, next) => {
+    try {
+        const { responseId, jwtAccount } = req.body;
+
+        // Get the user
+        const user = await UserModel.findOne({ account: jwtAccount.account });
+        if (!user) {
+            res.locals.status = 401;
+            res.locals.data = {
+                message: "Unauthorized",
+            };
+            return next();
+        }
+
+        // Find the response by ID
+        const response = await ResponseModel.findById(responseId);
+        if (!response) {
+            res.locals.status = 404;
+            res.locals.data = {
+                message: 'Response not found',
+            };
+            return next();
+        }
+
+        // Check if user has rated the response
+        const userIndex = response.rate.indexOf(user._id);
+        if (userIndex === -1) {
+            res.locals.status = 400;
+            res.locals.data = {
+                message: 'User has not rated this response',
+            };
+            return next();
+        }
+
+        // Remove userId from the rate array
+        response.rate.splice(userIndex, 1);
+        await response.save();
+
+        // Find the owner of the response
+        const owner = await UserModel.findById(response.userId);
+        if (owner) {
+            owner.heartNumber = Math.max(owner.heartNumber - 1, 0); // Ensure heartNumber doesn't go below 0
+            await owner.save();
+        } else {
+            res.locals.status = 404;
+            res.locals.data = {
+                message: 'Response owner not found',
+            };
+            return next();
+        }
+
+        res.locals.status = 200;
+        res.locals.data = {
+            message: 'Response unrated successfully',
+            account: user._id
+        };
+        return next();
+    } catch (err) {
+        console.error(err);
+        res.locals.status = 500;
+        res.locals.data = {
+            message: 'Server Error',
+        };
+        return next();
+    }
+}
+
 
 
 // Helper function to calculate the percentage of matching letters
