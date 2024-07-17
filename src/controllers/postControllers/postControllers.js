@@ -639,13 +639,15 @@ export const deletePostById = async (req, res, next) => {
 
         // Find the post by ID
         const post = await PostModel.findById(postId).populate({ path: 'userId', select: 'account' }); // Populate the userId field in the post;
-
-        if (post.userId.account !== jwtAccount.account) {
-            res.locals.status = 401;
-            res.locals.data = {
-                message: 'Unauthorize',
-            };
-            return next();
+        console.log(jwtAccount.roleName)
+        if (jwtAccount.roleName !== 'Admin') {
+            if (post.userId.account !== jwtAccount.account) {
+                res.locals.status = 401;
+                res.locals.data = {
+                    message: 'Unauthorize',
+                };
+                return next();
+            }
         }
 
         if (!post) {

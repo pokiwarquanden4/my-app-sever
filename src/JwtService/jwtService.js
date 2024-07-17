@@ -36,14 +36,12 @@ export const authenJWT = (req, res) => {
     if (err) {
       jwt.verify(token, process.env.REFRESH_TOKEN_SECRET, (err, user) => {
         if (err) {
-          console.log(token)
-          console.log(err)
           currentUser.error = {
             status: 401,
             message: "Token is invalid"
           }
         } else {
-          if (req.body.role === undefined || user.roleName === req.body.role) {
+          if (req.body.role === undefined || req.body.role.includes(user.roleName)) {
             currentUser = user;
             currentUser.refreshToken = true;
           } else {
@@ -55,7 +53,7 @@ export const authenJWT = (req, res) => {
         }
       });
     } else {
-      if (req.body.role === undefined || user.roleName === req.body.role) {
+      if (req.body.role === undefined || req.body.role.includes(user.roleName)) {
         currentUser = user;
       } else {
         currentUser.error = {

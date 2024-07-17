@@ -25,7 +25,7 @@ const routesConfig = {
       role: undefined,
       update: {
         jwt: true,
-        role: "User",
+        role: ["User"],
       }
     },
     getUsersSimpleData: {
@@ -42,7 +42,7 @@ const routesConfig = {
     },
     vertify: {
       jwt: true,
-      role: "User"
+      role: ["User"]
     },
     responses: {
       jwt: false,
@@ -66,78 +66,90 @@ const routesConfig = {
     },
     create: {
       jwt: true,
-      role: "User",
+      role: ["User"],
       post: {
         jwt: true,
-        role: "User"
+        role: ["User"]
       },
       response: {
         jwt: true,
-        role: "User"
+        role: ["User"]
       },
       comment: {
         jwt: true,
-        role: "User"
+        role: ["User"]
       },
     },
     delete: {
       jwt: true,
-      role: "User",
+      role: ["User", 'Admin'],
       post: {
         jwt: true,
-        role: "User"
+        role: ["User", 'Admin']
       },
     },
     update: {
       jwt: true,
-      role: "User",
+      role: ["User"],
       post: {
         jwt: true,
-        role: "User"
+        role: ["User"]
       },
       response: {
         jwt: true,
-        role: "User"
+        role: ["User"]
       },
     },
     rate: {
       jwt: true,
-      role: "User",
+      role: ["User"],
       post: {
         jwt: true,
-        role: "User",
+        role: ["User"],
       },
       unPost: {
         jwt: true,
-        role: "User",
+        role: ["User"],
       },
       response: {
         jwt: true,
-        role: "User",
+        role: ["User"],
       },
       unResponse: {
         jwt: true,
-        role: "User",
+        role: ["User"],
       }
     }
   },
   admin: {
     jwt: true,
-    role: "Admin",
+    role: ["Admin"],
     advert: {
       jwt: true,
-      role: "Admin",
+      role: ["Admin"],
       create: {
         jwt: true,
-        role: "Admin",
+        role: ["Admin"],
       },
       update: {
         jwt: true,
-        role: "Admin",
+        role: ["Admin"],
       },
       simpleAdverts: {
         jwt: false,
         role: undefined,
+      }
+    },
+    report: {
+      jwt: true,
+      role: ['Admin'],
+      create: {
+        jwt: true,
+        role: ['User'],
+      },
+      update: {
+        jwt: true,
+        role: ['Admin'],
       }
     }
   }
