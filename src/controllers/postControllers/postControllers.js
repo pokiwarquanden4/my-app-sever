@@ -125,6 +125,8 @@ export const responsePost = async (req, res, next) => {
         // Populate the userId field in the new response
         const response = await ResponseModel.findById(newResponse._id).populate({ path: 'userId', select: 'account' });
 
+        createNotify(postId, newResponse._id, undefined, jwtAccount, 'Response')
+
         res.locals.status = 200;
         res.locals.data = {
             message: "Response added successfully",
@@ -199,6 +201,8 @@ export const commentResponse = async (req, res, next) => {
         //         { $push: { notification: newNotify.id } }
         //     );
         // }
+
+        createNotify(postId, responseId, newComment._id, jwtAccount, 'Response')
 
         res.locals.status = 200;
         res.locals.data = {
@@ -733,6 +737,8 @@ export const ratePost = async (req, res, next) => {
             return next();
         }
 
+        createNotify(postId, undefined, undefined, jwtAccount, 'Rate')
+
         res.locals.status = 200;
         res.locals.data = {
             message: 'Post rated successfully',
@@ -856,6 +862,8 @@ export const rateResponse = async (req, res, next) => {
             };
             return next();
         }
+
+        createNotify(response.postId, responseId, undefined, jwtAccount, 'Rate')
 
         res.locals.status = 200;
         res.locals.data = {
@@ -1204,6 +1212,46 @@ export const unFollowResponse = async (req, res, next) => {
     }
 };
 
+const getReceiverPost = async (postId, responseId, commentId, action) => {
+    if (commentId) {
+        if (action === 'Response') {
+            const receiverPost = await ResponseModel.findOne({ _id: responseId })
+            return receiverPost
+        }
+    }
+
+    if (responseId) {
+        if (action === 'Follow') {
+            const receiverPost = await ResponseModel.findOne({ _id: responseId })
+            return receiverPost
+        }
+        if (action === 'Rate') {
+            const receiverPost = await ResponseModel.findOne({ _id: responseId })
+            return receiverPost
+        }
+        if (action === 'Vertify') {
+            const receiverPost = await ResponseModel.findOne({ _id: responseId })
+            return receiverPost
+        }
+        if (action === 'Response') {
+            const receiverPost = await ResponseModel.findOne({ _id: postId })
+            return receiverPost
+        }
+    }
+
+    if (postId) {
+        if (action === 'Follow') {
+            const receiverPost = await ResponseModel.findOne({ _id: postId })
+            return receiverPost
+        }
+        if (action === 'Rate') {
+            const receiverPost = await ResponseModel.findOne({ _id: postId })
+            return receiverPost
+        }
+    }
+
+}
+
 export const createNotify = async (postId, responseId, commentId, jwtAccount, action) => {
     try {
         // Validate if required fields are provided
@@ -1217,14 +1265,9 @@ export const createNotify = async (postId, responseId, commentId, jwtAccount, ac
         if (!sender) return
 
         //Find receiver
-        let receiverPost
-        if (responseId) {
-            receiverPost = await ResponseModel.findOne({ _id: responseId })
-        } else {
-            receiverPost = await PostModel.findOne({ _id: postId })
-        }
+        const receiverPost = await getReceiverPost(postId, responseId, commentId, action)
 
-        if (!receiverPost) return
+        if (!receiverPost || receiverPost.userId === sender._id) return
 
         // Create a new notification
         const newNotification = new NotifyModel({
@@ -1246,10 +1289,10 @@ export const createNotify = async (postId, responseId, commentId, jwtAccount, ac
         await user.save();
 
         const notification = await NotifyModel.findById(newNotification._id)
-            .populate({ path: 'postId', select: 'postId title' })
-            .populate({ path: 'senderId', select: 'userId account avatarURL' })
+            .populate({ path: 'postId', select: 'title' })
+            .populate({ path: 'senderId', select: 'account avatarURL' })
 
-        createSocketMessage('6676a28484242710c5b1920d', notification)
+        createSocketMessage(receiverPost.userId, notification)
 
         return newNotification
     } catch (err) {
