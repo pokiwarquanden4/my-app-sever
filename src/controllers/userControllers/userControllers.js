@@ -1,7 +1,7 @@
 import { NotifyModel, UserModel } from "../../models/userModel.js";
 import bcrypt from 'bcrypt';
 import { createFireBaseImg } from "../FireBaseControllers/FireBaseControllers.js";
-import { PostModel, ResponseModel } from "../../models/postModel.js";
+import nodemailer from "nodemailer";
 
 //Tạo người dùng
 export const createUser = async (req, res, next) => {
@@ -253,14 +253,14 @@ export const getProfile = async (req, res, next) => {
 
 export const updateProfile = async (req, res, next) => {
   try {
-    const { name, techTags, password, jwtAccount } = req.body;
+    const { name, techTags, newpassword, jwtAccount } = req.body;
     const account = jwtAccount.account
 
     // Validate if required fields are provided
-    if (!name && !techTags && !password) {
+    if (!name && !techTags && !newpassword) {
       res.locals.status = 400;
       res.locals.data = {
-        message: "Account and at least one field (name, techTags, password) are required for update",
+        message: "Account and at least one field (name, techTags, newpassword) are required for update",
       };
       return next();
     }
@@ -269,9 +269,9 @@ export const updateProfile = async (req, res, next) => {
     const updateFields = {};
     if (name) updateFields.name = name;
     if (techTags) updateFields.techTags = techTags;
-    if (password) {
+    if (newpassword) {
       // Hash the password before storing it
-      const hashedPassword = await bcrypt.hash(password, 10); // You can adjust the salt rounds as needed
+      const hashedPassword = await bcrypt.hash(newpassword, 10); // You can adjust the salt rounds as needed
       updateFields.password = hashedPassword;
     }
 
@@ -446,6 +446,152 @@ export const checkNotify = async (req, res, next) => {
 
     res.locals.status = 200;
     res.locals.data = updatedNotification;
+    return next();
+  } catch (err) {
+    console.error(err);
+    res.locals.status = 500;
+    res.locals.data = {
+      message: 'Server Error',
+    };
+    return next();
+  }
+};
+
+function generateRandomPassword() {
+  const length = 10;
+  const characters =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let password = "";
+
+  for (let i = 0; i < length; i++) {
+    const randomIndex = Math.floor(Math.random() * characters.length);
+    password += characters.charAt(randomIndex);
+  }
+
+  return password;
+}
+
+const mailing = async (subject, text, toGmail) => {
+  let mailTransporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: "venedorshop@gmail.com",
+      pass: "nnxmjaopbwiexjpi",
+    },
+  });
+
+  let details = {
+    from: "venedorshop@gmail.com",
+    to: toGmail,
+    subject: subject,
+    text: text,
+  };
+
+  mailTransporter.sendMail(details, (err) => {
+    if (err) {
+      return err;
+    } else {
+      return true;
+    }
+  });
+};
+
+export const createOTPCode = async (req, res, next) => {
+  try {
+    const { account } = req.body; // Expecting the account identifier to be provided in the request body
+
+    if (!account) {
+      res.locals.status = 400;
+      res.locals.data = {
+        message: 'Account identifier is required',
+      };
+      return next();
+    }
+
+    // Generate OTP
+    const otpCode = Math.floor(10000 + Math.random() * 90000);;
+
+    // Find the user by account and update the otpCode
+    const updatedUser = await UserModel.findOneAndUpdate(
+      { account },
+      { otpCode },
+      { new: true } // Return the updated document
+    );
+
+    if (!updatedUser) {
+      res.locals.status = 404;
+      res.locals.data = {
+        message: 'User not found',
+      };
+      return next();
+    }
+
+    await mailing("Your OTP code", `OTP: ${otpCode}`, updatedUser.email);
+
+    res.locals.status = 200;
+    res.locals.data = "Success"
+    return next();
+  } catch (err) {
+    console.error(err);
+    res.locals.status = 500;
+    res.locals.data = {
+      message: 'Server Error',
+    };
+    return next();
+  }
+};
+
+export const verifyOTP = async (req, res, next) => {
+  try {
+    const { account, otp } = req.body; // Expecting the account and OTP code to be provided in the request body
+
+    if (!account || otp === undefined) {
+      res.locals.status = 400;
+      res.locals.data = {
+        message: 'Account identifier and OTP code are required',
+      };
+      return next();
+    }
+
+    // Find the user by account
+    const user = await UserModel.findOne({ account });
+
+    if (!user) {
+      res.locals.status = 404;
+      res.locals.data = {
+        message: 'User not found',
+      };
+      return next();
+    }
+
+    // Check if the provided OTP matches the stored OTP
+    console.log(user.otpCode, otp)
+    if (user.otpCode != otp) {
+      res.locals.status = 401;
+      res.locals.data = {
+        message: 'Invalid OTP code',
+      };
+      return next();
+    }
+
+    // Optionally, clear the OTP code after successful verification
+    const newPassword = generateRandomPassword()
+    const hashedPassword = await bcrypt.hash(newPassword, 10); // You can adjust the salt rounds as needed
+
+    user.password = hashedPassword
+    user.otpCode = undefined;
+    await user.save();
+
+    await mailing(
+      "Your new password code",
+      `Password: ${newPassword}`,
+      user.email
+    );
+
+    res.locals.status = 200;
+    res.locals.data = {
+      message: 'OTP code verified successfully',
+    };
     return next();
   } catch (err) {
     console.error(err);

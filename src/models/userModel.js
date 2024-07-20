@@ -85,6 +85,9 @@ const userSchema = new mongoose.Schema(
       type: Schema.Types.ObjectId,
       ref: 'Notify'
     }],
+    otpCode: {
+      type: Number
+    }
 
   },
   { timestamps: true }

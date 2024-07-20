@@ -39,6 +39,18 @@ const routesConfig = {
     checkNotify: {
       jwt: true,
       role: ["User"],
+    },
+    otp: {
+      jwt: false,
+      role: undefined,
+      create: {
+        jwt: false,
+        role: undefined,
+      },
+      vertify: {
+        jwt: false,
+        role: undefined,
+      },
     }
   },
   posts: {

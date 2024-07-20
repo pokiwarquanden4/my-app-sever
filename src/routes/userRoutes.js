@@ -1,6 +1,7 @@
 import express from "express";
 import {
   checkNotify,
+  createOTPCode,
   createUser,
   getAllNotify,
   getProfile,
@@ -8,7 +9,8 @@ import {
   getUserDetails,
   getUsersSimpleData,
   loginUser,
-  updateProfile
+  updateProfile,
+  verifyOTP
 } from "../controllers/userControllers/userControllers.js";
 import { jwtMiddlewareController } from '../middleware/jwtMiddleware.js'
 import { handleResponseWithJWTMiddleware } from "../JwtService/jwtService.js";
@@ -34,5 +36,9 @@ userRoutes.get("/getUsersSimpleData", jwtMiddlewareController, getUsersSimpleDat
 userRoutes.get("/getNotify", jwtMiddlewareController, getAllNotify, handleResponseWithJWTMiddleware);
 
 userRoutes.put("/checkNotify", jwtMiddlewareController, checkNotify, handleResponseWithJWTMiddleware);
+
+userRoutes.post("/otp/create", jwtMiddlewareController, createOTPCode, handleResponseWithJWTMiddleware);
+
+userRoutes.post("/otp/vertify", jwtMiddlewareController, verifyOTP, handleResponseWithJWTMiddleware);
 
 export default userRoutes;
