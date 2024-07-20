@@ -950,7 +950,7 @@ export const unRateResponse = async (req, res, next) => {
 
 export const vertifyResponse = async (req, res, next) => {
     try {
-        const { postId, responseId, trueOrFalse } = req.body;
+        const { postId, responseId, trueOrFalse, jwtAccount } = req.body;
 
         // Find the response by ID
         const response = await ResponseModel.findById(responseId);
@@ -1266,7 +1266,7 @@ export const createNotify = async (postId, responseId, commentId, jwtAccount, ac
         //Find receiver
         const receiverPost = await getReceiverPost(postId, responseId, commentId, action)
 
-        if (!receiverPost || receiverPost.userId === sender._id) return
+        if (!receiverPost || receiverPost.userId.equals(sender._id)) return
         // Create a new notification
         const newNotification = new NotifyModel({
             postId,
