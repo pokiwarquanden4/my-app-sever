@@ -1,6 +1,8 @@
 import express from "express";
 import {
+  checkNotify,
   createUser,
+  getAllNotify,
   getProfile,
   getUser,
   getUserDetails,
@@ -28,5 +30,9 @@ userRoutes.get("/profile", jwtMiddlewareController, getProfile, handleResponseWi
 userRoutes.put("/profile/update", upload.single('img'), jwtMiddlewareController, updateProfile, handleResponseWithJWTMiddleware);
 
 userRoutes.get("/getUsersSimpleData", jwtMiddlewareController, getUsersSimpleData, handleResponseWithJWTMiddleware);
+
+userRoutes.get("/getNotify", jwtMiddlewareController, getAllNotify, handleResponseWithJWTMiddleware);
+
+userRoutes.put("/checkNotify", jwtMiddlewareController, checkNotify, handleResponseWithJWTMiddleware);
 
 export default userRoutes;

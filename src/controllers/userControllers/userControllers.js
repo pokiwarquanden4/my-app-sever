@@ -1,6 +1,7 @@
-import { UserModel } from "../../models/userModel.js";
+import { NotifyModel, UserModel } from "../../models/userModel.js";
 import bcrypt from 'bcrypt';
 import { createFireBaseImg } from "../FireBaseControllers/FireBaseControllers.js";
+import { PostModel, ResponseModel } from "../../models/postModel.js";
 
 //Tạo người dùng
 export const createUser = async (req, res, next) => {
@@ -375,6 +376,82 @@ export const getUsersSimpleData = async (req, res, next) => {
     res.locals.status = 500;
     res.locals.data = {
       message: "Server Error",
+    };
+    return next();
+  }
+};
+
+export const getAllNotify = async (req, res, next) => {
+  try {
+    const { jwtAccount } = req.body; // Adjust this if the user information is passed differently
+
+    // Find the user by their account
+    const user = await UserModel.findOne({ account: jwtAccount.account }).populate({
+      path: 'notification',
+      populate: [
+        { path: 'postId', select: 'title' },
+        { path: 'senderId', select: 'account avatarURL' },
+      ],
+    });
+
+    if (!user) {
+      res.locals.status = 401;
+      res.locals.data = {
+        message: 'Unauthorized',
+      };
+      return next();
+    }
+
+    res.locals.status = 200;
+    res.locals.data = {
+      notifications: user.notification
+    };
+    return next();
+  } catch (err) {
+    console.error(err);
+    res.locals.status = 500;
+    res.locals.data = {
+      message: 'Server Error',
+    };
+    return next();
+  }
+};
+
+export const checkNotify = async (req, res, next) => {
+  try {
+    const { id } = req.body; // Expecting the notification ID to be provided in the request body
+
+    if (!id) {
+      res.locals.status = 400;
+      res.locals.data = {
+        message: 'Notification ID is required',
+      };
+      return next();
+    }
+
+    // Find and update the notification
+    const updatedNotification = await NotifyModel.findByIdAndUpdate(
+      id,
+      { checked: true },
+      { new: true } // Return the updated document
+    );
+
+    if (!updatedNotification) {
+      res.locals.status = 404;
+      res.locals.data = {
+        message: 'Notification not found',
+      };
+      return next();
+    }
+
+    res.locals.status = 200;
+    res.locals.data = updatedNotification;
+    return next();
+  } catch (err) {
+    console.error(err);
+    res.locals.status = 500;
+    res.locals.data = {
+      message: 'Server Error',
     };
     return next();
   }

@@ -11,6 +11,17 @@ const notifiSchema = new mongoose.Schema(
       type: Schema.Types.ObjectId,
       ref: 'Response'
     },
+    commentId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Comment'
+    },
+    senderId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    action: {
+      type: String,
+    },
     checked: {
       type: Boolean,
       default: false,

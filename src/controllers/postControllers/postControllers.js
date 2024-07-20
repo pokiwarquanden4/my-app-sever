@@ -1,5 +1,7 @@
 import { CommentModel, PostModel, ResponseModel } from "../../models/postModel.js";
 import { NotifyModel, UserModel } from "../../models/userModel.js";
+import { io } from "../../sever.js";
+import { socketId } from "../../socket/socket.js";
 import { tagsList } from '../../utils/tags.js'
 
 export const getTags = async (req, res, next) => {
@@ -101,6 +103,7 @@ export const responsePost = async (req, res, next) => {
         const newResponse = await ResponseModel.create({
             userId: user._id,
             content: content,
+            postId: postId
         })
         const post = await PostModel.findById(postId);
         if (!post) {
@@ -113,24 +116,14 @@ export const responsePost = async (req, res, next) => {
         post.responses.push(newResponse.id);
         await post.save();
 
+        // Add the response's _id to the user's userResponse field
+        await UserModel.updateOne(
+            { account: jwtAccount.account },
+            { $push: { userResponse: newResponse._id } }
+        );
+
         // Populate the userId field in the new response
         const response = await ResponseModel.findById(newResponse._id).populate({ path: 'userId', select: 'account' });
-
-        // Create a new notify
-        // if (jwtAccount.account !== post.userId) {
-        //     const newNotify = await NotifyModel.create({
-        //         postId: post.id,
-        //         responseId: newResponse.id,
-        //         details: {
-        //             sender: jwtAccount.account,
-        //             postName: post.title
-        //         }
-        //     })
-        //     await UserModel.updateOne(
-        //         { account: post.userId },
-        //         { $push: { notification: newNotify.id } }
-        //     );
-        // }
 
         res.locals.status = 200;
         res.locals.data = {
@@ -175,6 +168,7 @@ export const commentResponse = async (req, res, next) => {
         const newComment = await CommentModel.create({
             userId: user._id,
             content: content,
+            responseId: responseId
         });
         const response = await ResponseModel.findById(responseId);
         if (!response) {
@@ -284,7 +278,7 @@ export const getPosts = async (req, res, next) => {
                     responses: 1,
                     verified: { $sum: '$responses.vertified' },
                 })
-                .populate({ path: 'userId', select: 'account' })
+                .populate({ path: 'userId', select: 'account avatarURL' })
                 .populate({ path: 'responses', select: 'vertified' });
 
             // Execute a separate query to get the total count
@@ -305,7 +299,7 @@ export const getPosts = async (req, res, next) => {
                     responses: 1,
                     verified: { $sum: '$responses.vertified' },
                 })
-                .populate({ path: 'userId', select: 'account' })
+                .populate({ path: 'userId', select: 'account avatarURL' })
                 .populate({ path: 'responses', select: 'vertified' });
 
             // Execute a separate query to get the total count
@@ -357,7 +351,7 @@ export const getResponses = async (req, res, next) => {
         }
 
         // Retrieve all responses for the post
-        const responses = await ResponseModel.find({ _id: { $in: post.responses } }).populate({ path: 'userId', select: 'account' });
+        const responses = await ResponseModel.find({ _id: { $in: post.responses } }).populate({ path: 'userId', select: 'account avatarURL' });
 
         res.locals.status = 200;
         res.locals.data = {
@@ -474,10 +468,10 @@ export const getPostById = async (req, res, next) => {
                 path: 'responses',
                 populate: [
                     { path: 'comment', populate: { path: 'userId', select: 'account' } },
-                    { path: 'userId', select: 'account' }
+                    { path: 'userId', select: 'account avatarURL' }
                 ]
             })
-            .populate({ path: 'userId', select: 'account' }); // Populate the userId field in the post
+            .populate({ path: 'userId', select: 'account avatarURL' }); // Populate the userId field in the post
 
 
         if (!post) {
@@ -965,7 +959,7 @@ export const vertifyResponse = async (req, res, next) => {
         await response.save();
 
         // Find the response by ID
-        const post = await PostModel.findById(postId).populate({ path: 'responses', select: 'vertified' });;
+        const post = await PostModel.findById(postId).populate({ path: 'responses', select: 'vertified' });
         if (!post) {
             res.locals.status = 404;
             res.locals.data = {
@@ -978,6 +972,8 @@ export const vertifyResponse = async (req, res, next) => {
         const isSolved = post.responses.some(res => res.vertified);
         post.slove = isSolved;
         await post.save();
+
+        createNotify(postId, responseId, undefined, jwtAccount, 'Vertify')
 
         res.locals.status = 200;
         res.locals.data = {
@@ -992,6 +988,280 @@ export const vertifyResponse = async (req, res, next) => {
         };
         return next();
     }
+}
+
+export const followPost = async (req, res, next) => {
+    try {
+        const { postId, jwtAccount } = req.body;
+
+        // Get the user
+        const user = await UserModel.findOne({ account: jwtAccount.account });
+        if (!user) {
+            res.locals.status = 401;
+            res.locals.data = {
+                message: "Unauthorized",
+            };
+            return next();
+        }
+
+        // Check if the post exists
+        const post = await PostModel.findById(postId);
+        if (!post) {
+            res.locals.status = 404;
+            res.locals.data = {
+                message: 'Post not found',
+            };
+            return next();
+        }
+
+        if (user.followPost.includes(postId)) {
+            res.locals.status = 400;
+            res.locals.data = {
+                message: 'User is already following this post',
+            };
+            return next();
+        }
+
+        // Add the post to the user's followPost array
+        user.followPost.push(postId);
+        await user.save();
+
+        createNotify(postId, undefined, undefined, jwtAccount, 'Follow')
+
+        res.locals.status = 200;
+        res.locals.data = {
+            message: 'Post followed successfully',
+            postId: postId
+        };
+        return next();
+    } catch (err) {
+        console.error(err);
+        res.locals.status = 500;
+        res.locals.data = {
+            message: 'Server Error',
+        };
+        return next();
+    }
+};
+
+export const followResponse = async (req, res, next) => {
+    try {
+        const { responseId, jwtAccount } = req.body;
+
+        // Get the user
+        const user = await UserModel.findOne({ account: jwtAccount.account });
+        if (!user) {
+            res.locals.status = 401;
+            res.locals.data = {
+                message: "Unauthorized",
+            };
+            return next();
+        }
+
+        // Check if the response exists
+        const response = await ResponseModel.findById(responseId);
+        if (!response) {
+            res.locals.status = 404;
+            res.locals.data = {
+                message: 'Response not found',
+            };
+            return next();
+        }
+
+        if (user.followResponse.includes(responseId)) {
+            res.locals.status = 400;
+            res.locals.data = {
+                message: 'User is already following this response',
+            };
+            return next();
+        }
+
+        // Add the response to the user's followResponse array
+        user.followResponse.push(responseId);
+        await user.save();
+
+        createNotify(response.postId, responseId, undefined, jwtAccount, 'Follow')
+
+        res.locals.status = 200;
+        res.locals.data = {
+            message: 'Response followed successfully',
+            responseId: responseId
+        };
+        return next();
+    } catch (err) {
+        console.error(err);
+        res.locals.status = 500;
+        res.locals.data = {
+            message: 'Server Error',
+        };
+        return next();
+    }
+};
+
+export const unFollowPost = async (req, res, next) => {
+    try {
+        const { postId, jwtAccount } = req.body;
+
+        // Get the user
+        const user = await UserModel.findOne({ account: jwtAccount.account });
+        if (!user) {
+            res.locals.status = 401;
+            res.locals.data = {
+                message: "Unauthorized",
+            };
+            return next();
+        }
+
+        // Check if the post exists
+        const post = await PostModel.findById(postId);
+        if (!post) {
+            res.locals.status = 404;
+            res.locals.data = {
+                message: 'Post not found',
+            };
+            return next();
+        }
+
+        // Check if the user is not following the post
+        if (!user.followPost.includes(postId)) {
+            res.locals.status = 400;
+            res.locals.data = {
+                message: 'User is not following this post',
+            };
+            return next();
+        }
+
+        // Remove the post from the user's followPost array
+        user.followPost = user.followPost.filter(id => id.toString() !== postId);
+        await user.save();
+
+        res.locals.status = 200;
+        res.locals.data = {
+            message: 'Post unfollowed successfully',
+            postId: postId
+        };
+        return next();
+    } catch (err) {
+        console.error(err);
+        res.locals.status = 500;
+        res.locals.data = {
+            message: 'Server Error',
+        };
+        return next();
+    }
+};
+
+export const unFollowResponse = async (req, res, next) => {
+    try {
+        const { responseId, jwtAccount } = req.body;
+
+        // Get the user
+        const user = await UserModel.findOne({ account: jwtAccount.account });
+        if (!user) {
+            res.locals.status = 401;
+            res.locals.data = {
+                message: "Unauthorized",
+            };
+            return next();
+        }
+
+        // Check if the response exists
+        const response = await ResponseModel.findById(responseId);
+        if (!response) {
+            res.locals.status = 404;
+            res.locals.data = {
+                message: 'Response not found',
+            };
+            return next();
+        }
+
+        // Check if the user is not following the response
+        if (!user.followResponse.includes(responseId)) {
+            res.locals.status = 400;
+            res.locals.data = {
+                message: 'User is not following this response',
+            };
+            return next();
+        }
+
+        // Remove the response from the user's followResponse array
+        user.followResponse = user.followResponse.filter(id => id.toString() !== responseId);
+        await user.save();
+
+        res.locals.status = 200;
+        res.locals.data = {
+            message: 'Response unfollowed successfully',
+            responseId: responseId
+        };
+        return next();
+    } catch (err) {
+        console.error(err);
+        res.locals.status = 500;
+        res.locals.data = {
+            message: 'Server Error',
+        };
+        return next();
+    }
+};
+
+export const createNotify = async (postId, responseId, commentId, jwtAccount, action) => {
+    try {
+        // Validate if required fields are provided
+        if (!postId || !jwtAccount || !action) {
+            return
+        }
+
+        // Find the user by their account
+        const sender = await UserModel.findOne({ account: jwtAccount.account });
+
+        if (!sender) return
+
+        //Find receiver
+        let receiverPost
+        if (responseId) {
+            receiverPost = await ResponseModel.findOne({ _id: responseId })
+        } else {
+            receiverPost = await PostModel.findOne({ _id: postId })
+        }
+
+        if (!receiverPost) return
+
+        // Create a new notification
+        const newNotification = new NotifyModel({
+            postId,
+            responseId,
+            commentId,
+            senderId: sender._id,
+            action,
+        });
+
+        // Save the notification
+        await newNotification.save();
+
+        // Add the notification to the receiver's notifications array
+        const user = await UserModel.findById(receiverPost.userId);
+        if (!user) return
+
+        user.notification.push(newNotification._id);
+        await user.save();
+
+        const notification = await NotifyModel.findById(newNotification._id)
+            .populate({ path: 'postId', select: 'postId title' })
+            .populate({ path: 'senderId', select: 'userId account avatarURL' })
+
+        createSocketMessage('6676a28484242710c5b1920d', notification)
+
+        return newNotification
+    } catch (err) {
+        return
+    }
+};
+
+const createSocketMessage = (userId, data) => {
+    const socket = socketId[userId]
+    if (!socket) return
+
+    io.to(socket).emit('notification', data)
 }
 
 

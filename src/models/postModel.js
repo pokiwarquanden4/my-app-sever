@@ -7,6 +7,11 @@ export const commentSchema = new mongoose.Schema(
             ref: 'User',
             require: true
         },
+        responseId: {
+            type: Schema.Types.ObjectId,
+            ref: 'Response',
+            require: true
+        },
         content: {
             type: String,
             require: true
@@ -20,6 +25,11 @@ export const responseSchema = new mongoose.Schema(
         userId: {
             type: Schema.Types.ObjectId,
             ref: 'User',
+            require: true
+        },
+        postId: {
+            type: Schema.Types.ObjectId,
+            ref: 'Post',
             require: true
         },
         content: {

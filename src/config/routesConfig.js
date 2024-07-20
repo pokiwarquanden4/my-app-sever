@@ -32,6 +32,14 @@ const routesConfig = {
       jwt: false,
       role: undefined,
     },
+    getNotify: {
+      jwt: true,
+      role: ["User"],
+    },
+    checkNotify: {
+      jwt: true,
+      role: ["User"],
+    }
   },
   posts: {
     jwt: false,
@@ -119,6 +127,26 @@ const routesConfig = {
         jwt: true,
         role: ["User"],
       }
+    },
+    follow: {
+      jwt: true,
+      role: ["User"],
+      post: {
+        jwt: true,
+        role: ["User"],
+      },
+      response: {
+        jwt: true,
+        role: ["User"],
+      },
+      unPost: {
+        jwt: true,
+        role: ["User"],
+      },
+      unResponse: {
+        jwt: true,
+        role: ["User"],
+      },
     }
   },
   admin: {
