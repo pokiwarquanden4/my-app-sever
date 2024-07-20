@@ -263,7 +263,7 @@ export const getReports = async (req, res, next) => {
         // Determine the query based on the 'type' parameter
         switch (type) {
             case 'Newest':
-                query = { status: 0 }; // Fetch posts with status 1 (assuming it means Newest)
+                query = {}; // Fetch posts with status 1 (assuming it means Newest)
                 break;
             case 'Reject':
                 query = { status: 1 }; // Fetch posts with status 2 (Rejected)
