@@ -1234,18 +1234,18 @@ const getReceiverPost = async (postId, responseId, commentId, action) => {
             return receiverPost
         }
         if (action === 'Response') {
-            const receiverPost = await ResponseModel.findOne({ _id: postId })
+            const receiverPost = await PostModel.findOne({ _id: postId })
             return receiverPost
         }
     }
 
     if (postId) {
         if (action === 'Follow') {
-            const receiverPost = await ResponseModel.findOne({ _id: postId })
+            const receiverPost = await PostModel.findOne({ _id: postId })
             return receiverPost
         }
         if (action === 'Rate') {
-            const receiverPost = await ResponseModel.findOne({ _id: postId })
+            const receiverPost = await PostModel.findOne({ _id: postId })
             return receiverPost
         }
     }
@@ -1261,14 +1261,12 @@ export const createNotify = async (postId, responseId, commentId, jwtAccount, ac
 
         // Find the user by their account
         const sender = await UserModel.findOne({ account: jwtAccount.account });
-
         if (!sender) return
 
         //Find receiver
         const receiverPost = await getReceiverPost(postId, responseId, commentId, action)
 
         if (!receiverPost || receiverPost.userId === sender._id) return
-
         // Create a new notification
         const newNotification = new NotifyModel({
             postId,
@@ -1296,6 +1294,7 @@ export const createNotify = async (postId, responseId, commentId, jwtAccount, ac
 
         return newNotification
     } catch (err) {
+        console.log(err)
         return
     }
 };
