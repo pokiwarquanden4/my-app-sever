@@ -226,6 +226,7 @@ export const getPosts = async (req, res, next) => {
         const { number, type, searchVal, tags } = req.query;
 
         let query = {};
+        let sort = {}
 
         // Handle pagination based on the 'number' parameter
         const skip = (parseInt(number) - 1) * 10;
@@ -234,6 +235,7 @@ export const getPosts = async (req, res, next) => {
         switch (type) {
             case 'Newest':
                 query = {}; // No specific conditions for newest posts
+                sort = { createdAt: -1 }
                 break;
             case 'Active':
                 query = { enable: true };
@@ -243,6 +245,7 @@ export const getPosts = async (req, res, next) => {
                 break;
             case 'Star':
                 query = {}; // Default query, will sort by rate later
+                sort = { rate: -1 }
                 break;
             case 'Answered':
                 query = { 'response.vertified': true };
@@ -264,51 +267,29 @@ export const getPosts = async (req, res, next) => {
         let posts = [];
         let totalCount = 0;
 
-        if (type === 'Star') {
-            // For 'Star' type, sort by rate in descending order
-            posts = await PostModel.find(query)
-                .sort({ rate: -1 })
-                .skip(skip)
-                .limit(10)
-                .select({
-                    _id: 1,
-                    rate: 1,
-                    answer: { $size: '$responses' }, // Assuming 'responses' is the array field in postSchema
-                    title: 1,
-                    subTitle: 1,
-                    tags: 1,
-                    userId: 1,
-                    updatedAt: 1,
-                    responses: 1,
-                    verified: { $sum: '$responses.vertified' },
-                })
-                .populate({ path: 'userId', select: 'account avatarURL' })
-                .populate({ path: 'responses', select: 'vertified' });
+        // For 'Star' type, sort by rate in descending order
+        posts = await PostModel.find(query)
+            .sort(sort)
+            .skip(skip)
+            .limit(10)
+            .select({
+                _id: 1,
+                rate: 1,
+                answer: { $size: '$responses' }, // Assuming 'responses' is the array field in postSchema
+                title: 1,
+                subTitle: 1,
+                tags: 1,
+                userId: 1,
+                updatedAt: 1,
+                createdAt: 1,
+                responses: 1,
+                verified: { $sum: '$responses.vertified' },
+            })
+            .populate({ path: 'userId', select: 'account avatarURL' })
+            .populate({ path: 'responses', select: 'vertified' });
 
-            // Execute a separate query to get the total count
-            totalCount = await PostModel.countDocuments(query);
-        } else {
-            posts = await PostModel.find(query)
-                .skip(skip)
-                .limit(10)
-                .select({
-                    _id: 1,
-                    rate: 1,
-                    answer: { $size: '$responses' }, // Assuming 'responses' is the array field in postSchema
-                    title: 1,
-                    subTitle: 1,
-                    tags: 1,
-                    userId: 1,
-                    updatedAt: 1,
-                    responses: 1,
-                    verified: { $sum: '$responses.vertified' },
-                })
-                .populate({ path: 'userId', select: 'account avatarURL' })
-                .populate({ path: 'responses', select: 'vertified' });
-
-            // Execute a separate query to get the total count
-            totalCount = await PostModel.countDocuments(query);
-        }
+        // Execute a separate query to get the total count
+        totalCount = await PostModel.countDocuments(query);
 
         // Custom filtering based on searchVal
         if (searchVal) {
